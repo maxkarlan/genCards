@@ -75,13 +75,15 @@ body.light-mode .theme-toggle {
 }
 
 /* Update dropdown styling for dark mode */
-body.dark-mode #cardCount {
+body.dark-mode #cardCount,
+body.dark-mode #layerCount {
     background: rgba(0, 0, 0, 0.8);
     border-color: rgba(255, 255, 255, 0.3);
     color: white;
 }
 
-body.light-mode #cardCount {
+body.light-mode #cardCount,
+body.light-mode #layerCount {
     background: rgba(255, 255, 255, 0.9);
     color: #1a1a1a;
 }
@@ -106,7 +108,8 @@ body.light-mode label {
         left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
         width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
         height 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
-        transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+        opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
     will-change: top, left, width, height, transform;
     z-index: 10;
     overflow: hidden;
@@ -181,19 +184,28 @@ body.light-mode label {
     </style>
 </head>
 <body class="light-mode">
-    <div style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
-        <label for="cardCount" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Number of Cards:</label>
-        <select id="cardCount" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5" selected>5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-        </select>
+    <div style="position: fixed; top: 20px; left: 20px; z-index: 1000; display: flex; gap: 15px; align-items: center;">
+        <div>
+            <label for="cardCount" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Number of Cards:</label>
+            <select id="cardCount" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </select>
+        </div>
+        <div>
+            <label for="layerCount" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Layers:</label>
+            <select id="layerCount" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+            </select>
+        </div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
         <span id="themeIcon">🌙</span>
@@ -205,10 +217,11 @@ body.light-mode label {
 // Shape-Shifting Puzzle Animation
 const canvasContainer = document.querySelector('.hero-visual-container');
 const cardCountSelect = document.getElementById('cardCount');
+const layerCountSelect = document.getElementById('layerCount');
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
-let cards = [];
-let currentInventory;
+let cards = []; // Array of arrays: [layer0Cards, layer1Cards]
+let currentInventories = []; // Array of inventories for each layer
 let isOrganized = false;
 let autoCycleInterval;
 
@@ -243,27 +256,49 @@ const colorPalette = [
     '#669EA3', '#5B7D93', '#9D6EC2', '#EBE1CE', '#4F4643'
 ];
 
-// Function to create/update cards based on selected count
-function updateCardElements(numCards) {
+// Function to create/update cards based on selected count and layers
+function updateCardElements(numCards, numLayers) {
     // Clear existing cards
     canvasContainer.innerHTML = '';
     cards = [];
+    currentInventories = [];
     
-    // Randomly select colors from palette (each color used only once)
-    const shuffledPalette = [...colorPalette].sort(() => Math.random() - 0.5);
-    const selectedColors = shuffledPalette.slice(0, numCards);
-    
-    // Shuffle the selected colors again to assign randomly to cards
-    const assignedColors = [...selectedColors].sort(() => Math.random() - 0.5);
-    
-    // Create new cards with randomly assigned colors
-    for (let i = 0; i < numCards; i++) {
-        const card = document.createElement('div');
-        // Find which color class this color corresponds to (1-10)
-        const colorIndex = colorPalette.indexOf(assignedColors[i]) + 1;
-        card.className = `canvas-card card-${colorIndex}`;
-        canvasContainer.appendChild(card);
-        cards.push(card);
+    // Create cards for each layer
+    for (let layer = 0; layer < numLayers; layer++) {
+        const layerCards = [];
+        
+        // Randomly select colors from palette (each color used only once per layer)
+        const shuffledPalette = [...colorPalette].sort(() => Math.random() - 0.5);
+        const selectedColors = shuffledPalette.slice(0, numCards);
+        
+        // Shuffle the selected colors again to assign randomly to cards
+        const assignedColors = [...selectedColors].sort(() => Math.random() - 0.5);
+        
+        // Create new cards with randomly assigned colors
+        for (let i = 0; i < numCards; i++) {
+            const card = document.createElement('div');
+            // Find which color class this color corresponds to (1-10)
+            const colorIndex = colorPalette.indexOf(assignedColors[i]) + 1;
+            card.className = `canvas-card card-${colorIndex} layer-${layer}`;
+            // Layer 0 (top) has higher z-index, layer 1 (bottom) has lower z-index
+            card.style.zIndex = numLayers - layer;
+            
+            // Set opacity based on number of layers
+            if (numLayers === 1) {
+                card.style.opacity = '1.0'; // Full opacity for single layer
+            } else if (numLayers === 2) {
+                if (layer === 0) {
+                    card.style.opacity = '.9'; // Top layer: 33% opacity
+                } else {
+                    card.style.opacity = '1'; // Bottom layer: 66% opacity
+                }
+            }
+            
+            canvasContainer.appendChild(card);
+            layerCards.push(card);
+        }
+        
+        cards.push(layerCards);
     }
 }
 
@@ -489,60 +524,67 @@ if (canvasContainer) {
         };
     }
 
-    function setCardShapes(inventory) {
-        // We use the shapes from the inventory to assign classes
-        // We need to make sure we have enough cards? We assume 5.
-        const shapes = inventory.shapes;
-        const UNIT = getUnitSize();
+    function setCardShapes(inventories) {
+        // Process each layer's inventory
+        inventories.forEach((inventory, layerIndex) => {
+            const shapes = inventory.shapes;
+            const UNIT = getUnitSize();
+            const layerCards = cards[layerIndex] || [];
 
-        const allShapeClasses = [
-            'shape-square', 'shape-wide', 'shape-tall', 'shape-big',
-            'shape-wide-3', 'shape-tall-3', 'shape-wide-4', 'shape-tall-4',
-            'shape-rect-3x2', 'shape-rect-2x3', 'shape-big-3x3',
-            'shape-rect-4x2', 'shape-rect-2x4', 'shape-rect-4x3',
-            'shape-rect-3x4', 'shape-big-4x4'
-        ];
+            const allShapeClasses = [
+                'shape-square', 'shape-wide', 'shape-tall', 'shape-big',
+                'shape-wide-3', 'shape-tall-3', 'shape-wide-4', 'shape-tall-4',
+                'shape-rect-3x2', 'shape-rect-2x3', 'shape-big-3x3',
+                'shape-rect-4x2', 'shape-rect-2x4', 'shape-rect-4x3',
+                'shape-rect-3x4', 'shape-big-4x4'
+            ];
 
-        cards.forEach((card, i) => {
-            if (i < shapes.length) {
-                // Remove all shape classes
-                card.classList.remove(...allShapeClasses);
-                card.classList.add(shapes[i]);
-                card.dataset.shape = shapes[i];
+            layerCards.forEach((card, i) => {
+                if (i < shapes.length) {
+                    // Remove all shape classes
+                    card.classList.remove(...allShapeClasses);
+                    card.classList.add(shapes[i]);
+                    card.dataset.shape = shapes[i];
 
-                // Explicitly set size based on current UNIT
-                let w, h;
-                switch (shapes[i]) {
-                    case 'shape-square': w = UNIT; h = UNIT; break;
-                    case 'shape-wide': w = UNIT * 2 + GAP; h = UNIT; break;
-                    case 'shape-tall': w = UNIT; h = UNIT * 2 + GAP; break;
-                    case 'shape-big': w = UNIT * 2 + GAP; h = UNIT * 2 + GAP; break;
-                    case 'shape-wide-3': w = UNIT * 3 + GAP * 2; h = UNIT; break;
-                    case 'shape-tall-3': w = UNIT; h = UNIT * 3 + GAP * 2; break;
-                    case 'shape-wide-4': w = UNIT * 4 + GAP * 3; h = UNIT; break;
-                    case 'shape-tall-4': w = UNIT; h = UNIT * 4 + GAP * 3; break;
-                    case 'shape-rect-3x2': w = UNIT * 3 + GAP * 2; h = UNIT * 2 + GAP; break;
-                    case 'shape-rect-2x3': w = UNIT * 2 + GAP; h = UNIT * 3 + GAP * 2; break;
-                    case 'shape-big-3x3': w = UNIT * 3 + GAP * 2; h = UNIT * 3 + GAP * 2; break;
-                    case 'shape-rect-4x2': w = UNIT * 4 + GAP * 3; h = UNIT * 2 + GAP; break;
-                    case 'shape-rect-2x4': w = UNIT * 2 + GAP; h = UNIT * 4 + GAP * 3; break;
-                    case 'shape-rect-4x3': w = UNIT * 4 + GAP * 3; h = UNIT * 3 + GAP * 2; break;
-                    case 'shape-rect-3x4': w = UNIT * 3 + GAP * 2; h = UNIT * 4 + GAP * 3; break;
-                    case 'shape-big-4x4': w = UNIT * 4 + GAP * 3; h = UNIT * 4 + GAP * 3; break;
-                    default: w = UNIT; h = UNIT; break;
+                    // Explicitly set size based on current UNIT
+                    let w, h;
+                    switch (shapes[i]) {
+                        case 'shape-square': w = UNIT; h = UNIT; break;
+                        case 'shape-wide': w = UNIT * 2 + GAP; h = UNIT; break;
+                        case 'shape-tall': w = UNIT; h = UNIT * 2 + GAP; break;
+                        case 'shape-big': w = UNIT * 2 + GAP; h = UNIT * 2 + GAP; break;
+                        case 'shape-wide-3': w = UNIT * 3 + GAP * 2; h = UNIT; break;
+                        case 'shape-tall-3': w = UNIT; h = UNIT * 3 + GAP * 2; break;
+                        case 'shape-wide-4': w = UNIT * 4 + GAP * 3; h = UNIT; break;
+                        case 'shape-tall-4': w = UNIT; h = UNIT * 4 + GAP * 3; break;
+                        case 'shape-rect-3x2': w = UNIT * 3 + GAP * 2; h = UNIT * 2 + GAP; break;
+                        case 'shape-rect-2x3': w = UNIT * 2 + GAP; h = UNIT * 3 + GAP * 2; break;
+                        case 'shape-big-3x3': w = UNIT * 3 + GAP * 2; h = UNIT * 3 + GAP * 2; break;
+                        case 'shape-rect-4x2': w = UNIT * 4 + GAP * 3; h = UNIT * 2 + GAP; break;
+                        case 'shape-rect-2x4': w = UNIT * 2 + GAP; h = UNIT * 4 + GAP * 3; break;
+                        case 'shape-rect-4x3': w = UNIT * 4 + GAP * 3; h = UNIT * 3 + GAP * 2; break;
+                        case 'shape-rect-3x4': w = UNIT * 3 + GAP * 2; h = UNIT * 4 + GAP * 3; break;
+                        case 'shape-big-4x4': w = UNIT * 4 + GAP * 3; h = UNIT * 4 + GAP * 3; break;
+                        default: w = UNIT; h = UNIT; break;
+                    }
+                    card.style.width = `${w}px`;
+                    card.style.height = `${h}px`;
                 }
-                card.style.width = `${w}px`;
-                card.style.height = `${h}px`;
-            }
+            });
         });
     }
 
     function randomizePositions() {
         isOrganized = false;
         const numCards = parseInt(cardCountSelect.value);
-        // Generate a NEW layout every time we scatter
-        currentInventory = generateRandomLayout(numCards);
-        setCardShapes(currentInventory);
+        const numLayers = parseInt(layerCountSelect.value);
+        
+        // Generate a NEW layout for each layer
+        currentInventories = [];
+        for (let layer = 0; layer < numLayers; layer++) {
+            currentInventories.push(generateRandomLayout(numCards));
+        }
+        setCardShapes(currentInventories);
 
         // Define zones to ensure distribution - create zones based on number of cards
         // Using percentages. Safe buffer is roughly 20% from edges.
@@ -562,63 +604,38 @@ if (canvasContainer) {
         // Use as many zones as we need, up to the number of cards
         const zones = baseZones.slice(0, Math.max(numCards, 5));
 
-        // Shuffle zones
-        const shuffledZones = zones.sort(() => Math.random() - 0.5);
+        // Process each layer
+        cards.forEach((layerCards, layerIndex) => {
+            // Shuffle zones for each layer
+            const shuffledZones = [...zones].sort(() => Math.random() - 0.5);
+            
+            layerCards.forEach((card, i) => {
+                // Assign card to a zone
+                const zone = shuffledZones[i % shuffledZones.length];
 
-        cards.forEach((card, i) => {
-            // Assign card to a zone
-            const zone = shuffledZones[i % shuffledZones.length];
+                // Add random jitter (+/- 10%)
+                const jitterX = (Math.random() * 20) - 10;
+                const jitterY = (Math.random() * 20) - 10;
 
-            // Add random jitter (+/- 10%)
-            const jitterX = (Math.random() * 20) - 10;
-            const jitterY = (Math.random() * 20) - 10;
+                const finalX = zone.x + jitterX;
+                const finalY = zone.y + jitterY;
 
-            const finalX = zone.x + jitterX;
-            const finalY = zone.y + jitterY;
+                const randomRotate = Math.random() * 40 - 20;
 
-            const randomRotate = Math.random() * 40 - 20;
-
-            card.style.top = `${finalY}%`;
-            card.style.left = `${finalX}%`;
-            card.style.transform = `translate(-50%, -50%) rotate(${randomRotate}deg)`;
-            card.style.zIndex = Math.floor(Math.random() * 10);
+                card.style.top = `${finalY}%`;
+                card.style.left = `${finalX}%`;
+                card.style.transform = `translate(-50%, -50%) rotate(${randomRotate}deg)`;
+                // Keep layer z-index but add some randomness within layer
+                const baseZ = (numLayers - layerIndex) * 10;
+                card.style.zIndex = baseZ + Math.floor(Math.random() * 5);
+            });
         });
-
-
     }
 
     function organizePositions() {
         isOrganized = true;
         const UNIT = getUnitSize();
-
-        const cardsByShape = {
-            'shape-square': [],
-            'shape-wide': [],
-            'shape-tall': [],
-            'shape-big': [],
-            'shape-wide-3': [],
-            'shape-tall-3': [],
-            'shape-wide-4': [],
-            'shape-tall-4': [],
-            'shape-rect-3x2': [],
-            'shape-rect-2x3': [],
-            'shape-big-3x3': [],
-            'shape-rect-4x2': [],
-            'shape-rect-2x4': [],
-            'shape-rect-4x3': [],
-            'shape-rect-3x4': [],
-            'shape-big-4x4': []
-        };
-
-        cards.forEach(card => {
-            if (cardsByShape[card.dataset.shape]) {
-                cardsByShape[card.dataset.shape].push(card);
-            }
-        });
-
-        for (let key in cardsByShape) {
-            cardsByShape[key].sort(() => Math.random() - 0.5);
-        }
+        const numLayers = parseInt(layerCountSelect.value);
 
         // Shape dimensions for bounding box calculation
         const shapeDims = {
@@ -640,44 +657,79 @@ if (canvasContainer) {
             'shape-big-4x4': { w: UNIT * 4 + GAP * 3, h: UNIT * 4 + GAP * 3 }
         };
 
-        // Calculate visual bounding box of the layout (using Top-Left coordinates)
-        let minLeft = Infinity, maxRight = -Infinity, minTop = Infinity, maxBottom = -Infinity;
+        // Process each layer separately
+        cards.forEach((layerCards, layerIndex) => {
+            const currentInventory = currentInventories[layerIndex];
+            if (!currentInventory) return;
 
-        currentInventory.layout.forEach(slot => {
-            const dims = shapeDims[slot.shape];
-            // Coordinates are Top-Left based in the original system
-            const left = slot.x * (UNIT + GAP);
-            const top = slot.y * (UNIT + GAP);
-            const right = left + dims.w;
-            const bottom = top + dims.h;
+            const cardsByShape = {
+                'shape-square': [],
+                'shape-wide': [],
+                'shape-tall': [],
+                'shape-big': [],
+                'shape-wide-3': [],
+                'shape-tall-3': [],
+                'shape-wide-4': [],
+                'shape-tall-4': [],
+                'shape-rect-3x2': [],
+                'shape-rect-2x3': [],
+                'shape-big-3x3': [],
+                'shape-rect-4x2': [],
+                'shape-rect-2x4': [],
+                'shape-rect-4x3': [],
+                'shape-rect-3x4': [],
+                'shape-big-4x4': []
+            };
 
-            if (left < minLeft) minLeft = left;
-            if (right > maxRight) maxRight = right;
-            if (top < minTop) minTop = top;
-            if (bottom > maxBottom) maxBottom = bottom;
-        });
+            layerCards.forEach(card => {
+                if (cardsByShape[card.dataset.shape]) {
+                    cardsByShape[card.dataset.shape].push(card);
+                }
+            });
 
-        // Calculate the center of the bounding box
-        const visualCenterX = (minLeft + maxRight) / 2;
-        const visualCenterY = (minTop + maxBottom) / 2;
-
-        currentInventory.layout.forEach(slot => {
-            const card = cardsByShape[slot.shape].pop();
-            if (card) {
-                // Calculate position relative to center
-                // We want the card's Top-Left to be shifted so that the BoundingBox Center aligns with (0,0)
-                const targetX = (slot.x * (UNIT + GAP)) - visualCenterX;
-                const targetY = (slot.y * (UNIT + GAP)) - visualCenterY;
-
-                card.style.left = `calc(50% + ${targetX}px)`;
-                card.style.top = `calc(50% + ${targetY}px)`;
-                // Revert to translate(0,0) to match Top-Left anchoring
-                card.style.transform = `translate(0, 0) rotate(0deg)`;
-                card.style.zIndex = 20;
+            for (let key in cardsByShape) {
+                cardsByShape[key].sort(() => Math.random() - 0.5);
             }
+
+            // Calculate visual bounding box of the layout (using Top-Left coordinates)
+            let minLeft = Infinity, maxRight = -Infinity, minTop = Infinity, maxBottom = -Infinity;
+
+            currentInventory.layout.forEach(slot => {
+                const dims = shapeDims[slot.shape];
+                // Coordinates are Top-Left based in the original system
+                const left = slot.x * (UNIT + GAP);
+                const top = slot.y * (UNIT + GAP);
+                const right = left + dims.w;
+                const bottom = top + dims.h;
+
+                if (left < minLeft) minLeft = left;
+                if (right > maxRight) maxRight = right;
+                if (top < minTop) minTop = top;
+                if (bottom > maxBottom) maxBottom = bottom;
+            });
+
+            // Calculate the center of the bounding box
+            const visualCenterX = (minLeft + maxRight) / 2;
+            const visualCenterY = (minTop + maxBottom) / 2;
+
+            currentInventory.layout.forEach(slot => {
+                const card = cardsByShape[slot.shape].pop();
+                if (card) {
+                    // Calculate position relative to center
+                    // We want the card's Top-Left to be shifted so that the BoundingBox Center aligns with (0,0)
+                    const targetX = (slot.x * (UNIT + GAP)) - visualCenterX;
+                    const targetY = (slot.y * (UNIT + GAP)) - visualCenterY;
+
+                    card.style.left = `calc(50% + ${targetX}px)`;
+                    card.style.top = `calc(50% + ${targetY}px)`;
+                    // Revert to translate(0,0) to match Top-Left anchoring
+                    card.style.transform = `translate(0, 0) rotate(0deg)`;
+                    // Set z-index based on layer
+                    const baseZ = (numLayers - layerIndex) * 20;
+                    card.style.zIndex = baseZ;
+                }
+            });
         });
-
-
     }
 
     function toggleState() {
@@ -705,14 +757,19 @@ if (canvasContainer) {
     // Initialization function
     function initialize() {
         const numCards = parseInt(cardCountSelect.value);
-        updateCardElements(numCards);
+        const numLayers = parseInt(layerCountSelect.value);
+        updateCardElements(numCards, numLayers);
         stopAutoCycle();
         randomizePositions();
         startAutoCycle();
     }
 
-    // Event listener for dropdown change
+    // Event listeners for dropdown changes
     cardCountSelect.addEventListener('change', () => {
+        initialize();
+    });
+
+    layerCountSelect.addEventListener('change', () => {
         initialize();
     });
 
