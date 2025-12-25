@@ -76,14 +76,16 @@ body.light-mode .theme-toggle {
 
 /* Update dropdown styling for dark mode */
 body.dark-mode #cardCount,
-body.dark-mode #layerCount {
+body.dark-mode #layerCount,
+body.dark-mode #fillMode {
     background: rgba(0, 0, 0, 0.8);
     border-color: rgba(255, 255, 255, 0.3);
     color: white;
 }
 
 body.light-mode #cardCount,
-body.light-mode #layerCount {
+body.light-mode #layerCount,
+body.light-mode #fillMode {
     background: rgba(255, 255, 255, 0.9);
     color: #1a1a1a;
 }
@@ -116,6 +118,75 @@ body.light-mode label {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* Striped patterns - use mask to create transparent gaps */
+.canvas-card.striped-horizontal {
+    mask-image: repeating-linear-gradient(
+        0deg,
+        black 0px,
+        black 10px,
+        transparent 10px,
+        transparent 20px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        0deg,
+        black 0px,
+        black 10px,
+        transparent 10px,
+        transparent 20px
+    );
+}
+
+.canvas-card.striped-horizontal-offset {
+    mask-image: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 10px,
+        black 10px,
+        black 20px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 10px,
+        black 10px,
+        black 20px
+    );
+}
+
+.canvas-card.striped-vertical {
+    mask-image: repeating-linear-gradient(
+        90deg,
+        black 0px,
+        black 10px,
+        transparent 10px,
+        transparent 20px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        black 0px,
+        black 10px,
+        transparent 10px,
+        transparent 20px
+    );
+}
+
+.canvas-card.striped-vertical-offset {
+    mask-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 10px,
+        black 10px,
+        black 20px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 10px,
+        black 10px,
+        black 20px
+    );
 }
 
 /* Shape Classes */
@@ -206,6 +277,13 @@ body.light-mode label {
                 <option value="2">2</option>
             </select>
         </div>
+        <div>
+            <label for="fillMode" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Fill:</label>
+            <select id="fillMode" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+                <option value="solid" selected>Solid</option>
+                <option value="striped">Striped</option>
+            </select>
+        </div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
         <span id="themeIcon">🌙</span>
@@ -218,10 +296,12 @@ body.light-mode label {
 const canvasContainer = document.querySelector('.hero-visual-container');
 const cardCountSelect = document.getElementById('cardCount');
 const layerCountSelect = document.getElementById('layerCount');
+const fillModeSelect = document.getElementById('fillMode');
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.getElementById('themeIcon');
 let cards = []; // Array of arrays: [layer0Cards, layer1Cards]
 let currentInventories = []; // Array of inventories for each layer
+let cardStripeDirections = []; // Array of arrays storing stripe directions for each card
 let isOrganized = false;
 let autoCycleInterval;
 
@@ -256,16 +336,56 @@ const colorPalette = [
     '#669EA3', '#5B7D93', '#9D6EC2', '#EBE1CE', '#4F4643'
 ];
 
+// Function to apply stripes to cards
+function applyStripes() {
+    const fillMode = fillModeSelect.value;
+    const numLayers = parseInt(layerCountSelect.value);
+    
+    cards.forEach((layerCards, layerIndex) => {
+        layerCards.forEach((card, cardIndex) => {
+            // Remove all stripe classes
+            card.classList.remove('striped-horizontal', 'striped-horizontal-offset', 
+                                 'striped-vertical', 'striped-vertical-offset');
+            
+            if (fillMode === 'striped') {
+                const stripeDirection = cardStripeDirections[layerIndex]?.[cardIndex];
+                if (stripeDirection) {
+                    // Apply stripe with offset for interleaving
+                    // Always offset bottom layer (layer 1) when there are 2 layers
+                    // This ensures consistent interleaving when layers overlap
+                    if (numLayers === 2 && layerIndex === 1) {
+                        // Apply offset version for bottom layer
+                        if (stripeDirection === 'horizontal') {
+                            card.classList.add('striped-horizontal-offset');
+                        } else {
+                            card.classList.add('striped-vertical-offset');
+                        }
+                    } else {
+                        // Top layer (layer 0) or single layer - no offset
+                        if (stripeDirection === 'horizontal') {
+                            card.classList.add('striped-horizontal');
+                        } else {
+                            card.classList.add('striped-vertical');
+                        }
+                    }
+                }
+            }
+        });
+    });
+}
+
 // Function to create/update cards based on selected count and layers
 function updateCardElements(numCards, numLayers) {
     // Clear existing cards
     canvasContainer.innerHTML = '';
     cards = [];
     currentInventories = [];
+    cardStripeDirections = [];
     
     // Create cards for each layer
     for (let layer = 0; layer < numLayers; layer++) {
         const layerCards = [];
+        const layerStripeDirections = [];
         
         // Randomly select colors from palette (each color used only once per layer)
         const shuffledPalette = [...colorPalette].sort(() => Math.random() - 0.5);
@@ -288,18 +408,26 @@ function updateCardElements(numCards, numLayers) {
                 card.style.opacity = '1.0'; // Full opacity for single layer
             } else if (numLayers === 2) {
                 if (layer === 0) {
-                    card.style.opacity = '.9'; // Top layer: 33% opacity
+                    card.style.opacity = '0.9'; // Top layer: 33% opacity
                 } else {
                     card.style.opacity = '1'; // Bottom layer: 66% opacity
                 }
             }
+            
+            // Randomly assign stripe direction (50/50 chance for horizontal/vertical)
+            const stripeDirection = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+            layerStripeDirections.push(stripeDirection);
             
             canvasContainer.appendChild(card);
             layerCards.push(card);
         }
         
         cards.push(layerCards);
+        cardStripeDirections.push(layerStripeDirections);
     }
+    
+    // Apply stripes if needed
+    applyStripes();
 }
 
 if (canvasContainer) {
@@ -605,6 +733,9 @@ if (canvasContainer) {
         const zones = baseZones.slice(0, Math.max(numCards, 5));
 
         // Process each layer
+        const fillMode = fillModeSelect.value;
+        const isStriped = fillMode === 'striped';
+        
         cards.forEach((layerCards, layerIndex) => {
             // Shuffle zones for each layer
             const shuffledZones = [...zones].sort(() => Math.random() - 0.5);
@@ -617,10 +748,33 @@ if (canvasContainer) {
                 const jitterX = (Math.random() * 20) - 10;
                 const jitterY = (Math.random() * 20) - 10;
 
-                const finalX = zone.x + jitterX;
-                const finalY = zone.y + jitterY;
+                let finalX = zone.x + jitterX;
+                let finalY = zone.y + jitterY;
 
                 const randomRotate = Math.random() * 40 - 20;
+
+                // If striped mode, align to 20px grid and add offset for bottom layer
+                if (isStriped && numLayers === 2) {
+                    // Convert percentage to viewport width/height for pixel calculation
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+                    let pixelX = (finalX / 100) * vw;
+                    let pixelY = (finalY / 100) * vh;
+                    
+                    // Round to nearest 20px to align with stripe grid
+                    pixelX = Math.round(pixelX / 20) * 20;
+                    pixelY = Math.round(pixelY / 20) * 20;
+                    
+                    // Add 10px offset to bottom layer for interleaving
+                    if (layerIndex === 1) {
+                        pixelX += 10;
+                        pixelY += 10;
+                    }
+                    
+                    // Convert back to percentage
+                    finalX = (pixelX / vw) * 100;
+                    finalY = (pixelY / vh) * 100;
+                }
 
                 card.style.top = `${finalY}%`;
                 card.style.left = `${finalX}%`;
@@ -717,8 +871,22 @@ if (canvasContainer) {
                 if (card) {
                     // Calculate position relative to center
                     // We want the card's Top-Left to be shifted so that the BoundingBox Center aligns with (0,0)
-                    const targetX = (slot.x * (UNIT + GAP)) - visualCenterX;
-                    const targetY = (slot.y * (UNIT + GAP)) - visualCenterY;
+                    let targetX = (slot.x * (UNIT + GAP)) - visualCenterX;
+                    let targetY = (slot.y * (UNIT + GAP)) - visualCenterY;
+                    
+                    // Round to nearest 20px to align with stripe grid (20px repeat)
+                    // This ensures stripes align consistently across layers
+                    targetX = Math.round(targetX / 20) * 20;
+                    targetY = Math.round(targetY / 20) * 20;
+                    
+                    // Add 10px offset to bottom layer in striped mode for interleaving
+                    const fillMode = fillModeSelect.value;
+                    const isStriped = fillMode === 'striped';
+                    if (isStriped && numLayers === 2 && layerIndex === 1) {
+                        // Bottom layer: offset by 10px (half the stripe repeat) to interlace with top layer
+                        targetX += 10;
+                        targetY += 10;
+                    }
 
                     card.style.left = `calc(50% + ${targetX}px)`;
                     card.style.top = `calc(50% + ${targetY}px)`;
@@ -771,6 +939,10 @@ if (canvasContainer) {
 
     layerCountSelect.addEventListener('change', () => {
         initialize();
+    });
+
+    fillModeSelect.addEventListener('change', () => {
+        applyStripes();
     });
 
     // Initial Setup
