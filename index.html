@@ -682,16 +682,16 @@ if (canvasContainer) {
             'shape-big-4x4': { w: 4, h: 4 }
         };
 
-        // Precompute bitmasks for all shapes at all valid positions in a 6x6 grid
-        // Grid is represented as a 36-bit BigInt (0-35), row-major order.
-        // (0,0) is bit 0, (5,5) is bit 35.
+        // Precompute bitmasks for all shapes at all valid positions in a 5x5 grid
+        // Grid is represented as a 25-bit BigInt (0-24), row-major order.
+        // (0,0) is bit 0, (4,4) is bit 24.
         const SHAPE_MASKS = {};
 
         function getMask(w, h, x, y) {
             let mask = BigInt(0);
             for (let dy = 0; dy < h; dy++) {
                 for (let dx = 0; dx < w; dx++) {
-                    const bitIndex = (y + dy) * 6 + (x + dx);
+                    const bitIndex = (y + dy) * 5 + (x + dx);
                     mask |= (BigInt(1) << BigInt(bitIndex));
                 }
             }
@@ -702,10 +702,10 @@ if (canvasContainer) {
             SHAPE_MASKS[type] = [];
             const { w, h } = shapeDims[type];
             // Store masks for all possible top-left positions (x,y)
-            // Note: We compute for the full 6x6 grid.
+            // Note: We compute for the full 5x5 grid.
             // When solving for smaller WxH, we just ensure we don't pick positions outside WxH.
-            for (let y = 0; y <= 6 - h; y++) {
-                for (let x = 0; x <= 6 - w; x++) {
+            for (let y = 0; y <= 5 - h; y++) {
+                for (let x = 0; x <= 5 - w; x++) {
                     SHAPE_MASKS[type].push({
                         x, y,
                         mask: getMask(w, h, x, y)
@@ -717,7 +717,7 @@ if (canvasContainer) {
         // Helper: Check if a set of shapes can form a rectangle of size WxH
         function solveTiling(shapes, W, H) {
             // Target mask: The rectangle WxH must be filled.
-            // Our bitmask system is 6x6, so we define the "boundary" by only allowing positions within WxH.
+            // Our bitmask system is 5x5, so we define the "boundary" by only allowing positions within WxH.
 
             // Sort shapes largest to smallest to speed up backtracking
             const sortedShapes = [...shapes].sort((a, b) => {
@@ -779,16 +779,16 @@ if (canvasContainer) {
             }
 
             // 2. Find valid rectangular dimensions for this area
-            // Max area is numCards * 16 (for 4x4 shapes), but max grid is 36
-            // We only care if area <= 36
-            if (totalArea > 36) continue;
+            // Max area is numCards * 16 (for 4x4 shapes), but max grid is 25
+            // We only care if area <= 25
+            if (totalArea > 25) continue;
 
             const validDims = [];
-            // Find factors of totalArea that fit in 6x6
-            for (let w = 1; w <= 6; w++) {
+            // Find factors of totalArea that fit in 5x5
+            for (let w = 1; w <= 5; w++) {
                 if (totalArea % w === 0) {
                     const h = totalArea / w;
-                    if (h <= 6) {
+                    if (h <= 5) {
                         validDims.push({ w, h });
                     }
                 }
