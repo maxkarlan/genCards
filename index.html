@@ -1173,7 +1173,7 @@ if (canvasContainer) {
         // Define zones to ensure distribution - create zones based on number of cards
         // Calculate canvas area (excluding settings and buffer)
         const settingsHeight = window.innerWidth <= 768 ? 200 : 120;
-        const bufferHeight = 60; // 20px buffer below settings area
+        const bufferHeight = 100; // 20px buffer below settings area
         const canvasTopOffset = settingsHeight + bufferHeight;
         const canvasHeight = window.innerHeight - canvasTopOffset - (window.innerWidth <= 768 ? 10 : 20);
         const canvasCenterY = canvasTopOffset + (canvasHeight / 2);
@@ -1219,7 +1219,7 @@ if (canvasContainer) {
                 // Convert percentage to pixel position within canvas area
                 // Zones are defined as percentages of canvas area (not viewport)
                 const settingsHeight = window.innerWidth <= 768 ? 200 : 120;
-                const bufferHeight = 60; // 20px buffer below settings area
+                const bufferHeight = 100; // 20px buffer below settings area
                 const canvasTopOffset = settingsHeight + bufferHeight;
                 const containerPaddingX = window.innerWidth <= 768 ? 10 : 20;
                 const containerPaddingY = window.innerWidth <= 768 ? 10 : 20;
@@ -1341,7 +1341,7 @@ if (canvasContainer) {
         // Calculate available space excluding settings area and buffer
         // Settings container takes up space at the top, plus 20px buffer
         const settingsHeight = window.innerWidth <= 768 ? 200 : 120;
-        const bufferHeight = 60; // 20px buffer below settings area
+        const bufferHeight = 100; // 20px buffer below settings area
         const canvasTopOffset = settingsHeight + bufferHeight;
         const edgeBuffer = 40;
         const availableWidth = window.innerWidth - (edgeBuffer * 2);
