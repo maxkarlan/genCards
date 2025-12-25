@@ -189,6 +189,144 @@ body.light-mode label {
     );
 }
 
+/* Micro stripes - 1/2 width (5px stripes, 5px gaps, 10px repeat) */
+.canvas-card.striped-micro-horizontal {
+    mask-image: repeating-linear-gradient(
+        0deg,
+        black 0px,
+        black 5px,
+        transparent 5px,
+        transparent 10px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        0deg,
+        black 0px,
+        black 5px,
+        transparent 5px,
+        transparent 10px
+    );
+}
+
+.canvas-card.striped-micro-horizontal-offset {
+    mask-image: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 5px,
+        black 5px,
+        black 10px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 5px,
+        black 5px,
+        black 10px
+    );
+}
+
+.canvas-card.striped-micro-vertical {
+    mask-image: repeating-linear-gradient(
+        90deg,
+        black 0px,
+        black 5px,
+        transparent 5px,
+        transparent 10px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        black 0px,
+        black 5px,
+        transparent 5px,
+        transparent 10px
+    );
+}
+
+.canvas-card.striped-micro-vertical-offset {
+    mask-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 5px,
+        black 5px,
+        black 10px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 5px,
+        black 5px,
+        black 10px
+    );
+}
+
+/* Macro stripes - 2x width (20px stripes, 20px gaps, 40px repeat) */
+.canvas-card.striped-macro-horizontal {
+    mask-image: repeating-linear-gradient(
+        0deg,
+        black 0px,
+        black 20px,
+        transparent 20px,
+        transparent 40px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        0deg,
+        black 0px,
+        black 20px,
+        transparent 20px,
+        transparent 40px
+    );
+}
+
+.canvas-card.striped-macro-horizontal-offset {
+    mask-image: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 20px,
+        black 20px,
+        black 40px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 20px,
+        black 20px,
+        black 40px
+    );
+}
+
+.canvas-card.striped-macro-vertical {
+    mask-image: repeating-linear-gradient(
+        90deg,
+        black 0px,
+        black 20px,
+        transparent 20px,
+        transparent 40px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        black 0px,
+        black 20px,
+        transparent 20px,
+        transparent 40px
+    );
+}
+
+.canvas-card.striped-macro-vertical-offset {
+    mask-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 20px,
+        black 20px,
+        black 40px
+    );
+    -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 20px,
+        black 20px,
+        black 40px
+    );
+}
+
 /* Shape Classes */
 .shape-square {
     width: 100px;
@@ -282,6 +420,9 @@ body.light-mode label {
             <select id="fillMode" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
                 <option value="solid" selected>Solid</option>
                 <option value="striped">Striped</option>
+                <option value="micro-striped">Micro Stripes</option>
+                <option value="macro-striped">Macro Stripes</option>
+                <option value="varied-striped">Varied Stripes</option>
             </select>
         </div>
     </div>
@@ -302,6 +443,8 @@ const themeIcon = document.getElementById('themeIcon');
 let cards = []; // Array of arrays: [layer0Cards, layer1Cards]
 let currentInventories = []; // Array of inventories for each layer
 let cardStripeDirections = []; // Array of arrays storing stripe directions for each card
+let cardOffsetDecisions = []; // Array storing whether to apply offset when layers match (per card index)
+let cardStripeTypes = []; // Array of arrays storing stripe types for each card (normal, micro, macro) for varied mode
 let isOrganized = false;
 let autoCycleInterval;
 
@@ -328,7 +471,10 @@ function toggleTheme() {
 initTheme();
 
 // Add event listener for theme toggle button
-themeToggle.addEventListener('click', toggleTheme);
+themeToggle.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent triggering window click handler
+    toggleTheme();
+});
 
 // Color palette - all available colors
 const colorPalette = [
@@ -341,33 +487,47 @@ function applyStripes() {
     const fillMode = fillModeSelect.value;
     const numLayers = parseInt(layerCountSelect.value);
     
+    // Check if any stripe mode is active
+    const isStripeMode = fillMode === 'striped' || fillMode === 'micro-striped' || 
+                        fillMode === 'macro-striped' || fillMode === 'varied-striped';
+    
     cards.forEach((layerCards, layerIndex) => {
         layerCards.forEach((card, cardIndex) => {
             // Remove all stripe classes
-            card.classList.remove('striped-horizontal', 'striped-horizontal-offset', 
-                                 'striped-vertical', 'striped-vertical-offset');
+            card.classList.remove(
+                'striped-horizontal', 'striped-horizontal-offset', 
+                'striped-vertical', 'striped-vertical-offset',
+                'striped-micro-horizontal', 'striped-micro-horizontal-offset',
+                'striped-micro-vertical', 'striped-micro-vertical-offset',
+                'striped-macro-horizontal', 'striped-macro-horizontal-offset',
+                'striped-macro-vertical', 'striped-macro-vertical-offset'
+            );
             
-            if (fillMode === 'striped') {
+            if (isStripeMode) {
                 const stripeDirection = cardStripeDirections[layerIndex]?.[cardIndex];
                 if (stripeDirection) {
-                    // Apply stripe with offset for interleaving
-                    // Always offset bottom layer (layer 1) when there are 2 layers
-                    // This ensures consistent interleaving when layers overlap
-                    if (numLayers === 2 && layerIndex === 1) {
-                        // Apply offset version for bottom layer
-                        if (stripeDirection === 'horizontal') {
-                            card.classList.add('striped-horizontal-offset');
-                        } else {
-                            card.classList.add('striped-vertical-offset');
-                        }
-                    } else {
-                        // Top layer (layer 0) or single layer - no offset
-                        if (stripeDirection === 'horizontal') {
-                            card.classList.add('striped-horizontal');
-                        } else {
-                            card.classList.add('striped-vertical');
-                        }
+                    // Determine stripe type based on fill mode
+                    let stripeType = 'normal';
+                    if (fillMode === 'varied-striped') {
+                        stripeType = cardStripeTypes[layerIndex]?.[cardIndex] || 'normal';
+                    } else if (fillMode === 'micro-striped') {
+                        stripeType = 'micro';
+                    } else if (fillMode === 'macro-striped') {
+                        stripeType = 'macro';
                     }
+                    
+                    // Always offset bottom layer in striped modes (for interleaving)
+                    const shouldOffset = numLayers === 2 && layerIndex === 1;
+                    
+                    // Build class name based on stripe type, direction, and offset
+                    const typePrefix = stripeType === 'micro' ? 'striped-micro-' : 
+                                     stripeType === 'macro' ? 'striped-macro-' : 
+                                     'striped-';
+                    const directionSuffix = stripeDirection === 'horizontal' ? 'horizontal' : 'vertical';
+                    const offsetSuffix = shouldOffset ? '-offset' : '';
+                    
+                    const className = typePrefix + directionSuffix + offsetSuffix;
+                    card.classList.add(className);
                 }
             }
         });
@@ -381,11 +541,14 @@ function updateCardElements(numCards, numLayers) {
     cards = [];
     currentInventories = [];
     cardStripeDirections = [];
+    cardOffsetDecisions = [];
+    cardStripeTypes = [];
     
     // Create cards for each layer
     for (let layer = 0; layer < numLayers; layer++) {
         const layerCards = [];
         const layerStripeDirections = [];
+        const layerStripeTypes = [];
         
         // Randomly select colors from palette (each color used only once per layer)
         const shuffledPalette = [...colorPalette].sort(() => Math.random() - 0.5);
@@ -400,6 +563,8 @@ function updateCardElements(numCards, numLayers) {
             // Find which color class this color corresponds to (1-10)
             const colorIndex = colorPalette.indexOf(assignedColors[i]) + 1;
             card.className = `canvas-card card-${colorIndex} layer-${layer}`;
+            // Store the card's original index for later reference
+            card.dataset.cardIndex = i;
             // Layer 0 (top) has higher z-index, layer 1 (bottom) has lower z-index
             card.style.zIndex = numLayers - layer;
             
@@ -408,7 +573,7 @@ function updateCardElements(numCards, numLayers) {
                 card.style.opacity = '1.0'; // Full opacity for single layer
             } else if (numLayers === 2) {
                 if (layer === 0) {
-                    card.style.opacity = '0.9'; // Top layer: 33% opacity
+                    card.style.opacity = '0.95'; // Top layer: 33% opacity
                 } else {
                     card.style.opacity = '1'; // Bottom layer: 66% opacity
                 }
@@ -418,12 +583,48 @@ function updateCardElements(numCards, numLayers) {
             const stripeDirection = Math.random() < 0.5 ? 'horizontal' : 'vertical';
             layerStripeDirections.push(stripeDirection);
             
+            // For varied mode, assign random stripe type to each card (normal, micro, or macro)
+            // For other modes, stripe type will be determined by fillMode
+            const fillMode = fillModeSelect.value;
+            let stripeType = 'normal'; // default
+            if (fillMode === 'varied-striped') {
+                const rand = Math.random();
+                if (rand < 0.333) {
+                    stripeType = 'micro';
+                } else if (rand < 0.666) {
+                    stripeType = 'macro';
+                } else {
+                    stripeType = 'normal';
+                }
+            } else if (fillMode === 'micro-striped') {
+                stripeType = 'micro';
+            } else if (fillMode === 'macro-striped') {
+                stripeType = 'macro';
+            }
+            layerStripeTypes.push(stripeType);
+            
             canvasContainer.appendChild(card);
             layerCards.push(card);
         }
         
         cards.push(layerCards);
         cardStripeDirections.push(layerStripeDirections);
+        cardStripeTypes.push(layerStripeTypes);
+    }
+    
+    // Determine offset decisions for each card when both layers have matching stripe directions
+    if (numLayers === 2) {
+        for (let i = 0; i < numCards; i++) {
+            const topDirection = cardStripeDirections[0]?.[i];
+            const bottomDirection = cardStripeDirections[1]?.[i];
+            
+            // If both layers have the same stripe direction, decide whether to offset (85% chance)
+            if (topDirection && bottomDirection && topDirection === bottomDirection) {
+                cardOffsetDecisions[i] = Math.random() < 1; // 85% chance of offset
+            } else {
+                cardOffsetDecisions[i] = false; // No offset if directions don't match
+            }
+        }
     }
     
     // Apply stripes if needed
@@ -437,7 +638,7 @@ if (canvasContainer) {
         return window.innerWidth < 768 ? 60 : 100;
     }
 
-    const GAP = 10;
+    const GAP = 20;
 
 
 
@@ -753,28 +954,51 @@ if (canvasContainer) {
 
                 const randomRotate = Math.random() * 40 - 20;
 
-                // If striped mode, align to 20px grid and add offset for bottom layer
-                if (isStriped && numLayers === 2) {
-                    // Convert percentage to viewport width/height for pixel calculation
-                    const vw = window.innerWidth;
-                    const vh = window.innerHeight;
-                    let pixelX = (finalX / 100) * vw;
-                    let pixelY = (finalY / 100) * vh;
-                    
-                    // Round to nearest 20px to align with stripe grid
-                    pixelX = Math.round(pixelX / 20) * 20;
-                    pixelY = Math.round(pixelY / 20) * 20;
-                    
-                    // Add 10px offset to bottom layer for interleaving
-                    if (layerIndex === 1) {
-                        pixelX += 10;
-                        pixelY += 10;
+                // Convert percentage to viewport width/height for pixel calculation
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                let pixelX = (finalX / 100) * vw;
+                let pixelY = (finalY / 100) * vh;
+                
+                if (isStriped) {
+                    // Get stripe type for this card to determine grid alignment
+                    let stripeType = 'normal';
+                    if (fillMode === 'varied-striped') {
+                        stripeType = cardStripeTypes[layerIndex]?.[i] || 'normal';
+                    } else if (fillMode === 'micro-striped') {
+                        stripeType = 'micro';
+                    } else if (fillMode === 'macro-striped') {
+                        stripeType = 'macro';
                     }
                     
-                    // Convert back to percentage
-                    finalX = (pixelX / vw) * 100;
-                    finalY = (pixelY / vh) * 100;
+                    // Determine grid size and offset based on stripe type
+                    // Align to stripe pattern grid to ensure patterns align across cards
+                    let gridSize, offset;
+                    if (stripeType === 'micro') {
+                        gridSize = 10; // 10px repeat - align to 10px grid
+                        offset = 5;    // 5px offset (half of 10px repeat)
+                    } else if (stripeType === 'macro') {
+                        gridSize = 40; // 40px repeat - align to 40px grid
+                        offset = 20;   // 20px offset (half of 40px repeat)
+                    } else {
+                        gridSize = 20; // 20px repeat - align to 20px grid
+                        offset = 10;   // 10px offset (half of 20px repeat)
+                    }
+                    
+                    // Round to nearest grid size to align stripe patterns
+                    // This ensures transparent gaps don't create visual spacing issues
+                    // Don't offset card positions - only the stripe pattern is offset via CSS classes
+                    pixelX = Math.round(pixelX / gridSize) * gridSize;
+                    pixelY = Math.round(pixelY / gridSize) * gridSize;
+                } else {
+                    // For non-striped modes, use 10px grid to preserve spacing
+                    pixelX = Math.round(pixelX / 10) * 10;
+                    pixelY = Math.round(pixelY / 10) * 10;
                 }
+                
+                // Convert back to percentage
+                finalX = (pixelX / vw) * 100;
+                finalY = (pixelY / vh) * 100;
 
                 card.style.top = `${finalY}%`;
                 card.style.left = `${finalX}%`;
@@ -866,26 +1090,56 @@ if (canvasContainer) {
             const visualCenterX = (minLeft + maxRight) / 2;
             const visualCenterY = (minTop + maxBottom) / 2;
 
-            currentInventory.layout.forEach(slot => {
+            currentInventory.layout.forEach((slot, slotIndex) => {
                 const card = cardsByShape[slot.shape].pop();
                 if (card) {
+                    // Get the card's original index from data attribute
+                    const cardIndex = parseInt(card.dataset.cardIndex) || 0;
+                    
                     // Calculate position relative to center
                     // We want the card's Top-Left to be shifted so that the BoundingBox Center aligns with (0,0)
                     let targetX = (slot.x * (UNIT + GAP)) - visualCenterX;
                     let targetY = (slot.y * (UNIT + GAP)) - visualCenterY;
                     
-                    // Round to nearest 20px to align with stripe grid (20px repeat)
-                    // This ensures stripes align consistently across layers
-                    targetX = Math.round(targetX / 20) * 20;
-                    targetY = Math.round(targetY / 20) * 20;
-                    
-                    // Add 10px offset to bottom layer in striped mode for interleaving
+                    // Determine grid size and offset based on stripe type
                     const fillMode = fillModeSelect.value;
-                    const isStriped = fillMode === 'striped';
-                    if (isStriped && numLayers === 2 && layerIndex === 1) {
-                        // Bottom layer: offset by 10px (half the stripe repeat) to interlace with top layer
-                        targetX += 10;
-                        targetY += 10;
+                    const isStripeMode = fillMode === 'striped' || fillMode === 'micro-striped' || 
+                                       fillMode === 'macro-striped' || fillMode === 'varied-striped';
+                    
+                    if (isStripeMode) {
+                        // Get stripe type for this card to determine grid alignment
+                        let stripeType = 'normal';
+                        if (fillMode === 'varied-striped') {
+                            stripeType = cardStripeTypes[layerIndex]?.[cardIndex] || 'normal';
+                        } else if (fillMode === 'micro-striped') {
+                            stripeType = 'micro';
+                        } else if (fillMode === 'macro-striped') {
+                            stripeType = 'macro';
+                        }
+                        
+                        // Determine grid size and offset based on stripe type
+                        // Align to stripe pattern grid to ensure patterns align across cards
+                        let gridSize, offset;
+                        if (stripeType === 'micro') {
+                            gridSize = 10; // 10px repeat - align to 10px grid
+                            offset = 5;    // 5px offset (half of 10px repeat)
+                        } else if (stripeType === 'macro') {
+                            gridSize = 40; // 40px repeat - align to 40px grid
+                            offset = 20;   // 20px offset (half of 40px repeat)
+                        } else {
+                            gridSize = 20; // 20px repeat - align to 20px grid
+                            offset = 10;   // 10px offset (half of 20px repeat)
+                        }
+                        
+                        // Round to nearest grid size to align stripe patterns
+                        // This ensures transparent gaps don't create visual spacing issues
+                        // Don't offset card positions - only the stripe pattern is offset via CSS classes
+                        targetX = Math.round(targetX / gridSize) * gridSize;
+                        targetY = Math.round(targetY / gridSize) * gridSize;
+                    } else {
+                        // For non-striped modes, use 10px grid to preserve spacing
+                        targetX = Math.round(targetX / 10) * 10;
+                        targetY = Math.round(targetY / 10) * 10;
                     }
 
                     card.style.left = `calc(50% + ${targetX}px)`;
@@ -912,7 +1166,8 @@ if (canvasContainer) {
         stopAutoCycle(); // Clear existing to be safe
         autoCycleInterval = setInterval(() => {
             toggleState();
-        }, 4000);
+        }, 999999);
+        // }, 4000);
     }
 
     function stopAutoCycle() {
@@ -942,6 +1197,29 @@ if (canvasContainer) {
     });
 
     fillModeSelect.addEventListener('change', () => {
+        const fillMode = fillModeSelect.value;
+        const numLayers = parseInt(layerCountSelect.value);
+        const numCards = parseInt(cardCountSelect.value);
+        
+        // If switching to varied mode, regenerate stripe types for existing cards
+        if (fillMode === 'varied-striped' && cards.length > 0) {
+            cardStripeTypes = [];
+            for (let layer = 0; layer < numLayers; layer++) {
+                const layerStripeTypes = [];
+                for (let i = 0; i < numCards; i++) {
+                    const rand = Math.random();
+                    let stripeType = 'normal';
+                    if (rand < 0.333) {
+                        stripeType = 'micro';
+                    } else if (rand < 0.666) {
+                        stripeType = 'macro';
+                    }
+                    layerStripeTypes.push(stripeType);
+                }
+                cardStripeTypes.push(layerStripeTypes);
+            }
+        }
+        
         applyStripes();
     });
 
