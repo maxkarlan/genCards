@@ -446,6 +446,7 @@ let cardStripeDirections = []; // Array of arrays storing stripe directions for 
 let cardOffsetDecisions = []; // Array storing whether to apply offset when layers match (per card index)
 let cardStripeTypes = []; // Array of arrays storing stripe types for each card (normal, micro, macro) for varied mode
 let isOrganized = false;
+let currentScale = 1; // Current scale factor for the layout
 let autoCycleInterval;
 
 // Theme Toggle Functionality
@@ -483,7 +484,7 @@ const colorPalette = [
 ];
 
 // Function to apply stripes to cards
-function applyStripes() {
+function applyStripes(scale = 1) {
     const fillMode = fillModeSelect.value;
     const numLayers = parseInt(layerCountSelect.value);
     
@@ -503,6 +504,10 @@ function applyStripes() {
                 'striped-macro-vertical', 'striped-macro-vertical-offset'
             );
             
+            // Clear any existing stripe mask images
+            card.style.maskImage = '';
+            card.style.webkitMaskImage = '';
+            
             if (isStripeMode) {
                 const stripeDirection = cardStripeDirections[layerIndex]?.[cardIndex];
                 if (stripeDirection) {
@@ -516,18 +521,36 @@ function applyStripes() {
                         stripeType = 'macro';
                     }
                     
+                    // Calculate scaled stripe sizes
+                    let stripeSize, repeatSize;
+                    if (stripeType === 'micro') {
+                        stripeSize = 5 * scale;   // 5px scaled
+                        repeatSize = 10 * scale; // 10px repeat scaled
+                    } else if (stripeType === 'macro') {
+                        stripeSize = 20 * scale; // 20px scaled
+                        repeatSize = 40 * scale; // 40px repeat scaled
+                    } else {
+                        stripeSize = 10 * scale; // 10px scaled
+                        repeatSize = 20 * scale; // 20px repeat scaled
+                    }
+                    
                     // Always offset bottom layer in striped modes (for interleaving)
                     const shouldOffset = numLayers === 2 && layerIndex === 1;
                     
-                    // Build class name based on stripe type, direction, and offset
-                    const typePrefix = stripeType === 'micro' ? 'striped-micro-' : 
-                                     stripeType === 'macro' ? 'striped-macro-' : 
-                                     'striped-';
-                    const directionSuffix = stripeDirection === 'horizontal' ? 'horizontal' : 'vertical';
-                    const offsetSuffix = shouldOffset ? '-offset' : '';
+                    // Build mask-image with scaled values
+                    const angle = stripeDirection === 'horizontal' ? '0deg' : '90deg';
+                    let maskImage;
                     
-                    const className = typePrefix + directionSuffix + offsetSuffix;
-                    card.classList.add(className);
+                    if (shouldOffset) {
+                        // Offset pattern: transparent first, then stripe
+                        maskImage = `repeating-linear-gradient(${angle}, transparent 0px, transparent ${stripeSize}px, black ${stripeSize}px, black ${repeatSize}px)`;
+                    } else {
+                        // Normal pattern: stripe first, then transparent
+                        maskImage = `repeating-linear-gradient(${angle}, black 0px, black ${stripeSize}px, transparent ${stripeSize}px, transparent ${repeatSize}px)`;
+                    }
+                    
+                    card.style.maskImage = maskImage;
+                    card.style.webkitMaskImage = maskImage;
                 }
             }
         });
@@ -627,8 +650,8 @@ function updateCardElements(numCards, numLayers) {
         }
     }
     
-    // Apply stripes if needed
-    applyStripes();
+    // Apply stripes if needed (use current scale if organized, otherwise 1)
+    applyStripes(isOrganized ? currentScale : 1);
 }
 
 if (canvasContainer) {
@@ -905,6 +928,7 @@ if (canvasContainer) {
 
     function randomizePositions() {
         isOrganized = false;
+        currentScale = 1; // Reset scale for random positions
         const numCards = parseInt(cardCountSelect.value);
         const numLayers = parseInt(layerCountSelect.value);
         
@@ -1008,6 +1032,9 @@ if (canvasContainer) {
                 card.style.zIndex = baseZ + Math.floor(Math.random() * 5);
             });
         });
+        
+        // Apply stripes with scale 1 for random positions
+        applyStripes(1);
     }
 
     function organizePositions() {
@@ -1034,6 +1061,44 @@ if (canvasContainer) {
             'shape-rect-3x4': { w: UNIT * 3 + GAP * 2, h: UNIT * 4 + GAP * 3 },
             'shape-big-4x4': { w: UNIT * 4 + GAP * 3, h: UNIT * 4 + GAP * 3 }
         };
+
+        // Calculate maximum bounding box across all layers to determine scale
+        let maxLayoutWidth = 0;
+        let maxLayoutHeight = 0;
+        
+        currentInventories.forEach((inventory) => {
+            if (!inventory) return;
+            let minLeft = Infinity, maxRight = -Infinity, minTop = Infinity, maxBottom = -Infinity;
+            
+            inventory.layout.forEach(slot => {
+                const dims = shapeDims[slot.shape];
+                const left = slot.x * (UNIT + GAP);
+                const top = slot.y * (UNIT + GAP);
+                const right = left + dims.w;
+                const bottom = top + dims.h;
+                
+                if (left < minLeft) minLeft = left;
+                if (right > maxRight) maxRight = right;
+                if (top < minTop) minTop = top;
+                if (bottom > maxBottom) maxBottom = bottom;
+            });
+            
+            const layoutWidth = maxRight - minLeft;
+            const layoutHeight = maxBottom - minTop;
+            if (layoutWidth > maxLayoutWidth) maxLayoutWidth = layoutWidth;
+            if (layoutHeight > maxLayoutHeight) maxLayoutHeight = layoutHeight;
+        });
+        
+        // Calculate available space with buffer from window edges
+        const edgeBuffer = 40;
+        const availableWidth = window.innerWidth - (edgeBuffer * 2);
+        const availableHeight = window.innerHeight - (edgeBuffer * 2);
+        
+        // Calculate scale factor to fit layout within available space
+        // Only scale down if needed, never scale up
+        const scaleX = maxLayoutWidth > 0 ? Math.min(availableWidth / maxLayoutWidth, 1) : 1;
+        const scaleY = maxLayoutHeight > 0 ? Math.min(availableHeight / maxLayoutHeight, 1) : 1;
+        const scale = Math.min(scaleX, scaleY);
 
         // Process each layer separately
         cards.forEach((layerCards, layerIndex) => {
@@ -1141,9 +1206,18 @@ if (canvasContainer) {
                         targetX = Math.round(targetX / 10) * 10;
                         targetY = Math.round(targetY / 10) * 10;
                     }
+                    
+                    // Apply scale to positions
+                    targetX *= scale;
+                    targetY *= scale;
 
                     card.style.left = `calc(50% + ${targetX}px)`;
                     card.style.top = `calc(50% + ${targetY}px)`;
+                    
+                    // Apply scale to card sizes
+                    const dims = shapeDims[slot.shape];
+                    card.style.width = `${dims.w * scale}px`;
+                    card.style.height = `${dims.h * scale}px`;
                     // Revert to translate(0,0) to match Top-Left anchoring
                     card.style.transform = `translate(0, 0) rotate(0deg)`;
                     // Set z-index based on layer
@@ -1152,6 +1226,12 @@ if (canvasContainer) {
                 }
             });
         });
+        
+        // Store the scale for use in applyStripes
+        currentScale = scale;
+        
+        // Apply stripes with the calculated scale
+        applyStripes(scale);
     }
 
     function toggleState() {
@@ -1220,7 +1300,8 @@ if (canvasContainer) {
             }
         }
         
-        applyStripes();
+        // Apply stripes with current scale (use current scale if organized, otherwise 1)
+        applyStripes(isOrganized ? currentScale : 1);
     });
 
     // Initial Setup
@@ -1234,7 +1315,12 @@ if (canvasContainer) {
         resizeTimeout = setTimeout(() => {
             if (window.innerWidth !== lastWidth) {
                 lastWidth = window.innerWidth;
-                randomizePositions();
+                // Reorganize if currently organized, otherwise randomize
+                if (isOrganized) {
+                    organizePositions();
+                } else {
+                    randomizePositions();
+                }
             }
         }, 300);
     });
