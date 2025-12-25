@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape-Shifting Puzzle Animation</title>
+    <style>
+/* Light/Dark Mode */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    transition: background-color 0.3s ease;
+}
+
+body.light-mode {
+    background-color: #f5f5f5;
+}
+
+body.dark-mode {
+    background-color: #000000; /* Midnight black */
+}
+
+.hero-visual-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    transition: background 0.3s ease;
+}
+
+body.light-mode .hero-visual-container {
+    /* background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%); */
+    background: #E7E6E5;
+}
+
+body.dark-mode .hero-visual-container {
+    background: #242526; /* Midnight black */
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .theme-toggle {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #FFD700; /* Gold for sun */
+}
+
+body.light-mode .theme-toggle {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1a1a1a; /* Dark for moon */
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Update dropdown styling for dark mode */
+body.dark-mode #cardCount {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+body.light-mode #cardCount {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1a1a1a;
+}
+
+body.dark-mode label {
+    color: white;
+}
+
+body.light-mode label {
+    color: #1a1a1a;
+}
+
+/* Canvas Cards - Adaptive Sizing */
+.canvas-card {
+    position: absolute;
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+    /* Smooth transition for puzzle movement AND resizing */
+    transition: top 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+        left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+        width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+        height 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+        transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: top, left, width, height, transform;
+    z-index: 10;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Shape Classes */
+.shape-square {
+    width: 100px;
+    height: 100px;
+}
+
+.shape-wide {
+    width: 210px;
+    height: 100px;
+}
+
+.shape-tall {
+    width: 100px;
+    height: 210px;
+}
+
+.shape-big {
+    width: 210px;
+    height: 210px;
+}
+
+
+/* ABSTRACT WIDGET STYLES - Color Palette */
+
+.card-1 {
+    background-color: #C97F7C;
+}
+
+.card-2 {
+    background-color: #9C5551;
+}
+
+.card-3 {
+    background-color: #D1923E;
+}
+
+.card-4 {
+    background-color: #DFC270;
+}
+
+.card-5 {
+    background-color: #6F8D68;
+}
+
+.card-6 {
+    background-color: #669EA3;
+}
+
+.card-7 {
+    background-color: #5B7D93;
+}
+
+.card-8 {
+    background-color: #9D6EC2;
+}
+
+.card-9 {
+    background-color: #EBE1CE;
+}
+
+.card-10 {
+    background-color: #4F4643;
+}
+    </style>
+</head>
+<body class="light-mode">
+    <div style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+        <label for="cardCount" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Number of Cards:</label>
+        <select id="cardCount" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+        </select>
+    </div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span id="themeIcon">🌙</span>
+    </button>
+    <div class="hero-visual-container">
+    </div>
+
+    <script>
+// Shape-Shifting Puzzle Animation
+const canvasContainer = document.querySelector('.hero-visual-container');
+const cardCountSelect = document.getElementById('cardCount');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+let cards = [];
+let currentInventory;
+let isOrganized = false;
+let autoCycleInterval;
+
+// Theme Toggle Functionality
+function initTheme() {
+    // Check for saved theme preference or default to light mode
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+    document.body.className = theme === 'dark' ? 'dark-mode' : 'light-mode';
+    themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('theme', theme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
+
+// Initialize theme on page load
+initTheme();
+
+// Add event listener for theme toggle button
+themeToggle.addEventListener('click', toggleTheme);
+
+// Color palette - all available colors
+const colorPalette = [
+    '#C97F7C', '#9C5551', '#D1923E', '#DFC270', '#6F8D68',
+    '#669EA3', '#5B7D93', '#9D6EC2', '#EBE1CE', '#4F4643'
+];
+
+// Function to create/update cards based on selected count
+function updateCardElements(numCards) {
+    // Clear existing cards
+    canvasContainer.innerHTML = '';
+    cards = [];
+    
+    // Randomly select colors from palette (each color used only once)
+    const shuffledPalette = [...colorPalette].sort(() => Math.random() - 0.5);
+    const selectedColors = shuffledPalette.slice(0, numCards);
+    
+    // Shuffle the selected colors again to assign randomly to cards
+    const assignedColors = [...selectedColors].sort(() => Math.random() - 0.5);
+    
+    // Create new cards with randomly assigned colors
+    for (let i = 0; i < numCards; i++) {
+        const card = document.createElement('div');
+        // Find which color class this color corresponds to (1-10)
+        const colorIndex = colorPalette.indexOf(assignedColors[i]) + 1;
+        card.className = `canvas-card card-${colorIndex}`;
+        canvasContainer.appendChild(card);
+        cards.push(card);
+    }
+}
+
+if (canvasContainer) {
+
+    // Dynamic Unit Size
+    function getUnitSize() {
+        return window.innerWidth < 768 ? 60 : 100;
+    }
+
+    const GAP = 10;
+
+
+
+    // Dynamic Layout Generator (Perfect Rectangles with Bitmask Optimization)
+    function generateRandomLayout(numCards) {
+        // All shape types up to 4x4
+        const shapeTypes = [
+            'shape-square',      // 1x1
+            'shape-wide',        // 2x1
+            'shape-tall',        // 1x2
+            'shape-big',         // 2x2
+            'shape-wide-3',      // 3x1
+            'shape-tall-3',      // 1x3
+            'shape-wide-4',      // 4x1
+            'shape-tall-4',      // 1x4
+            'shape-rect-3x2',    // 3x2
+            'shape-rect-2x3',    // 2x3
+            'shape-big-3x3',     // 3x3
+            'shape-rect-4x2',    // 4x2
+            'shape-rect-2x4',    // 2x4
+            'shape-rect-4x3',    // 4x3
+            'shape-rect-3x4',    // 3x4
+            'shape-big-4x4'      // 4x4
+        ];
+        const shapeDims = {
+            'shape-square': { w: 1, h: 1 },
+            'shape-wide': { w: 2, h: 1 },
+            'shape-tall': { w: 1, h: 2 },
+            'shape-big': { w: 2, h: 2 },
+            'shape-wide-3': { w: 3, h: 1 },
+            'shape-tall-3': { w: 1, h: 3 },
+            'shape-wide-4': { w: 4, h: 1 },
+            'shape-tall-4': { w: 1, h: 4 },
+            'shape-rect-3x2': { w: 3, h: 2 },
+            'shape-rect-2x3': { w: 2, h: 3 },
+            'shape-big-3x3': { w: 3, h: 3 },
+            'shape-rect-4x2': { w: 4, h: 2 },
+            'shape-rect-2x4': { w: 2, h: 4 },
+            'shape-rect-4x3': { w: 4, h: 3 },
+            'shape-rect-3x4': { w: 3, h: 4 },
+            'shape-big-4x4': { w: 4, h: 4 }
+        };
+
+        // Precompute bitmasks for all shapes at all valid positions in a 6x6 grid
+        // Grid is represented as a 36-bit BigInt (0-35), row-major order.
+        // (0,0) is bit 0, (5,5) is bit 35.
+        const SHAPE_MASKS = {};
+
+        function getMask(w, h, x, y) {
+            let mask = BigInt(0);
+            for (let dy = 0; dy < h; dy++) {
+                for (let dx = 0; dx < w; dx++) {
+                    const bitIndex = (y + dy) * 6 + (x + dx);
+                    mask |= (BigInt(1) << BigInt(bitIndex));
+                }
+            }
+            return mask;
+        }
+
+        shapeTypes.forEach(type => {
+            SHAPE_MASKS[type] = [];
+            const { w, h } = shapeDims[type];
+            // Store masks for all possible top-left positions (x,y)
+            // Note: We compute for the full 6x6 grid.
+            // When solving for smaller WxH, we just ensure we don't pick positions outside WxH.
+            for (let y = 0; y <= 6 - h; y++) {
+                for (let x = 0; x <= 6 - w; x++) {
+                    SHAPE_MASKS[type].push({
+                        x, y,
+                        mask: getMask(w, h, x, y)
+                    });
+                }
+            }
+        });
+
+        // Helper: Check if a set of shapes can form a rectangle of size WxH
+        function solveTiling(shapes, W, H) {
+            // Target mask: The rectangle WxH must be filled.
+            // Our bitmask system is 6x6, so we define the "boundary" by only allowing positions within WxH.
+
+            // Sort shapes largest to smallest to speed up backtracking
+            const sortedShapes = [...shapes].sort((a, b) => {
+                const areaA = shapeDims[a].w * shapeDims[a].h;
+                const areaB = shapeDims[b].w * shapeDims[b].h;
+                return areaB - areaA;
+            });
+
+            const layout = []; // Stores {x, y, shape}
+
+            function backtrack(index, currentMask) {
+                if (index === sortedShapes.length) return true;
+
+                const shape = sortedShapes[index];
+                const { w, h } = shapeDims[shape];
+
+                // Try all valid positions for this shape within WxH
+                // We use the precomputed masks, but filter by W and H limits
+                const possibleMoves = SHAPE_MASKS[shape];
+
+                for (let i = 0; i < possibleMoves.length; i++) {
+                    const move = possibleMoves[i];
+
+                    // Check bounds for current target rectangle WxH
+                    if (move.x + w > W || move.y + h > H) continue;
+
+                    // Check collision using Bitwise AND (BigInt)
+                    if ((currentMask & move.mask) === BigInt(0)) {
+                        // Place shape
+                        layout.push({ x: move.x, y: move.y, shape: shape });
+
+                        // Recurse with updated mask (Bitwise OR)
+                        if (backtrack(index + 1, currentMask | move.mask)) return true;
+
+                        // Backtrack
+                        layout.pop();
+                    }
+                }
+                return false;
+            }
+
+            if (backtrack(0, BigInt(0))) {
+                return layout;
+            }
+            return null;
+        }
+
+        let attempts = 0;
+        while (attempts < 5000) {
+            attempts++;
+
+            // 1. Pick numCards random shapes
+            const shapes = [];
+            let totalArea = 0;
+            for (let i = 0; i < numCards; i++) {
+                const shape = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+                shapes.push(shape);
+                totalArea += shapeDims[shape].w * shapeDims[shape].h;
+            }
+
+            // 2. Find valid rectangular dimensions for this area
+            // Max area is numCards * 16 (for 4x4 shapes), but max grid is 36
+            // We only care if area <= 36
+            if (totalArea > 36) continue;
+
+            const validDims = [];
+            // Find factors of totalArea that fit in 6x6
+            for (let w = 1; w <= 6; w++) {
+                if (totalArea % w === 0) {
+                    const h = totalArea / w;
+                    if (h <= 6) {
+                        validDims.push({ w, h });
+                    }
+                }
+            }
+
+            if (validDims.length === 0) continue;
+
+            // Pick a random valid dimension
+            const dim = validDims[Math.floor(Math.random() * validDims.length)];
+
+            // 3. Try to tile
+            const resultLayout = solveTiling(shapes, dim.w, dim.h);
+
+            if (resultLayout) {
+                // Success!
+
+                // Randomly flip the layout to simulate packing from different corners
+                // Since the solver always packs Top-Left to Bottom-Right, big shapes tend to be at TL.
+                // Flipping allows them to be at TR, BL, or BR.
+                const flipX = Math.random() > 0.5;
+                const flipY = Math.random() > 0.5;
+
+                if (flipX || flipY) {
+                    resultLayout.forEach(item => {
+                        const { w, h } = shapeDims[item.shape];
+                        if (flipX) {
+                            item.x = dim.w - item.x - w;
+                        }
+                        if (flipY) {
+                            item.y = dim.h - item.y - h;
+                        }
+                    });
+                }
+
+                // Extract shapes from the result layout to ensure exact match
+                // We shuffle them to ensure that specific cards (like card[0]) don't always get the big shapes
+                // which happens because the solver sorts by size.
+                const finalShapes = resultLayout.map(l => l.shape).sort(() => Math.random() - 0.5);
+
+                return {
+                    name: `Rectangular ${dim.w}x${dim.h}`,
+                    shapes: finalShapes,
+                    layout: resultLayout
+                };
+            }
+        }
+
+        // Fallback - create a simple grid layout
+        const fallbackShapes = Array(numCards).fill('shape-square');
+        const fallbackLayout = [];
+        const fallbackWidth = Math.ceil(Math.sqrt(numCards));
+        for (let i = 0; i < numCards; i++) {
+            const x = i % fallbackWidth;
+            const y = Math.floor(i / fallbackWidth);
+            fallbackLayout.push({ x, y, shape: 'shape-square' });
+        }
+        
+        return {
+            name: "Fallback Square",
+            shapes: fallbackShapes,
+            layout: fallbackLayout
+        };
+    }
+
+    function setCardShapes(inventory) {
+        // We use the shapes from the inventory to assign classes
+        // We need to make sure we have enough cards? We assume 5.
+        const shapes = inventory.shapes;
+        const UNIT = getUnitSize();
+
+        const allShapeClasses = [
+            'shape-square', 'shape-wide', 'shape-tall', 'shape-big',
+            'shape-wide-3', 'shape-tall-3', 'shape-wide-4', 'shape-tall-4',
+            'shape-rect-3x2', 'shape-rect-2x3', 'shape-big-3x3',
+            'shape-rect-4x2', 'shape-rect-2x4', 'shape-rect-4x3',
+            'shape-rect-3x4', 'shape-big-4x4'
+        ];
+
+        cards.forEach((card, i) => {
+            if (i < shapes.length) {
+                // Remove all shape classes
+                card.classList.remove(...allShapeClasses);
+                card.classList.add(shapes[i]);
+                card.dataset.shape = shapes[i];
+
+                // Explicitly set size based on current UNIT
+                let w, h;
+                switch (shapes[i]) {
+                    case 'shape-square': w = UNIT; h = UNIT; break;
+                    case 'shape-wide': w = UNIT * 2 + GAP; h = UNIT; break;
+                    case 'shape-tall': w = UNIT; h = UNIT * 2 + GAP; break;
+                    case 'shape-big': w = UNIT * 2 + GAP; h = UNIT * 2 + GAP; break;
+                    case 'shape-wide-3': w = UNIT * 3 + GAP * 2; h = UNIT; break;
+                    case 'shape-tall-3': w = UNIT; h = UNIT * 3 + GAP * 2; break;
+                    case 'shape-wide-4': w = UNIT * 4 + GAP * 3; h = UNIT; break;
+                    case 'shape-tall-4': w = UNIT; h = UNIT * 4 + GAP * 3; break;
+                    case 'shape-rect-3x2': w = UNIT * 3 + GAP * 2; h = UNIT * 2 + GAP; break;
+                    case 'shape-rect-2x3': w = UNIT * 2 + GAP; h = UNIT * 3 + GAP * 2; break;
+                    case 'shape-big-3x3': w = UNIT * 3 + GAP * 2; h = UNIT * 3 + GAP * 2; break;
+                    case 'shape-rect-4x2': w = UNIT * 4 + GAP * 3; h = UNIT * 2 + GAP; break;
+                    case 'shape-rect-2x4': w = UNIT * 2 + GAP; h = UNIT * 4 + GAP * 3; break;
+                    case 'shape-rect-4x3': w = UNIT * 4 + GAP * 3; h = UNIT * 3 + GAP * 2; break;
+                    case 'shape-rect-3x4': w = UNIT * 3 + GAP * 2; h = UNIT * 4 + GAP * 3; break;
+                    case 'shape-big-4x4': w = UNIT * 4 + GAP * 3; h = UNIT * 4 + GAP * 3; break;
+                    default: w = UNIT; h = UNIT; break;
+                }
+                card.style.width = `${w}px`;
+                card.style.height = `${h}px`;
+            }
+        });
+    }
+
+    function randomizePositions() {
+        isOrganized = false;
+        const numCards = parseInt(cardCountSelect.value);
+        // Generate a NEW layout every time we scatter
+        currentInventory = generateRandomLayout(numCards);
+        setCardShapes(currentInventory);
+
+        // Define zones to ensure distribution - create zones based on number of cards
+        // Using percentages. Safe buffer is roughly 20% from edges.
+        const baseZones = [
+            { x: 25, y: 25 }, // TL
+            { x: 75, y: 25 }, // TR
+            { x: 25, y: 75 }, // BL
+            { x: 75, y: 75 }, // BR
+            { x: 50, y: 50 },  // Center
+            { x: 15, y: 50 },  // Left
+            { x: 85, y: 50 },  // Right
+            { x: 50, y: 15 },  // Top
+            { x: 50, y: 85 },  // Bottom
+            { x: 35, y: 35 }   // Extra
+        ];
+        
+        // Use as many zones as we need, up to the number of cards
+        const zones = baseZones.slice(0, Math.max(numCards, 5));
+
+        // Shuffle zones
+        const shuffledZones = zones.sort(() => Math.random() - 0.5);
+
+        cards.forEach((card, i) => {
+            // Assign card to a zone
+            const zone = shuffledZones[i % shuffledZones.length];
+
+            // Add random jitter (+/- 10%)
+            const jitterX = (Math.random() * 20) - 10;
+            const jitterY = (Math.random() * 20) - 10;
+
+            const finalX = zone.x + jitterX;
+            const finalY = zone.y + jitterY;
+
+            const randomRotate = Math.random() * 40 - 20;
+
+            card.style.top = `${finalY}%`;
+            card.style.left = `${finalX}%`;
+            card.style.transform = `translate(-50%, -50%) rotate(${randomRotate}deg)`;
+            card.style.zIndex = Math.floor(Math.random() * 10);
+        });
+
+
+    }
+
+    function organizePositions() {
+        isOrganized = true;
+        const UNIT = getUnitSize();
+
+        const cardsByShape = {
+            'shape-square': [],
+            'shape-wide': [],
+            'shape-tall': [],
+            'shape-big': [],
+            'shape-wide-3': [],
+            'shape-tall-3': [],
+            'shape-wide-4': [],
+            'shape-tall-4': [],
+            'shape-rect-3x2': [],
+            'shape-rect-2x3': [],
+            'shape-big-3x3': [],
+            'shape-rect-4x2': [],
+            'shape-rect-2x4': [],
+            'shape-rect-4x3': [],
+            'shape-rect-3x4': [],
+            'shape-big-4x4': []
+        };
+
+        cards.forEach(card => {
+            if (cardsByShape[card.dataset.shape]) {
+                cardsByShape[card.dataset.shape].push(card);
+            }
+        });
+
+        for (let key in cardsByShape) {
+            cardsByShape[key].sort(() => Math.random() - 0.5);
+        }
+
+        // Shape dimensions for bounding box calculation
+        const shapeDims = {
+            'shape-square': { w: UNIT, h: UNIT },
+            'shape-wide': { w: UNIT * 2 + GAP, h: UNIT },
+            'shape-tall': { w: UNIT, h: UNIT * 2 + GAP },
+            'shape-big': { w: UNIT * 2 + GAP, h: UNIT * 2 + GAP },
+            'shape-wide-3': { w: UNIT * 3 + GAP * 2, h: UNIT },
+            'shape-tall-3': { w: UNIT, h: UNIT * 3 + GAP * 2 },
+            'shape-wide-4': { w: UNIT * 4 + GAP * 3, h: UNIT },
+            'shape-tall-4': { w: UNIT, h: UNIT * 4 + GAP * 3 },
+            'shape-rect-3x2': { w: UNIT * 3 + GAP * 2, h: UNIT * 2 + GAP },
+            'shape-rect-2x3': { w: UNIT * 2 + GAP, h: UNIT * 3 + GAP * 2 },
+            'shape-big-3x3': { w: UNIT * 3 + GAP * 2, h: UNIT * 3 + GAP * 2 },
+            'shape-rect-4x2': { w: UNIT * 4 + GAP * 3, h: UNIT * 2 + GAP },
+            'shape-rect-2x4': { w: UNIT * 2 + GAP, h: UNIT * 4 + GAP * 3 },
+            'shape-rect-4x3': { w: UNIT * 4 + GAP * 3, h: UNIT * 3 + GAP * 2 },
+            'shape-rect-3x4': { w: UNIT * 3 + GAP * 2, h: UNIT * 4 + GAP * 3 },
+            'shape-big-4x4': { w: UNIT * 4 + GAP * 3, h: UNIT * 4 + GAP * 3 }
+        };
+
+        // Calculate visual bounding box of the layout (using Top-Left coordinates)
+        let minLeft = Infinity, maxRight = -Infinity, minTop = Infinity, maxBottom = -Infinity;
+
+        currentInventory.layout.forEach(slot => {
+            const dims = shapeDims[slot.shape];
+            // Coordinates are Top-Left based in the original system
+            const left = slot.x * (UNIT + GAP);
+            const top = slot.y * (UNIT + GAP);
+            const right = left + dims.w;
+            const bottom = top + dims.h;
+
+            if (left < minLeft) minLeft = left;
+            if (right > maxRight) maxRight = right;
+            if (top < minTop) minTop = top;
+            if (bottom > maxBottom) maxBottom = bottom;
+        });
+
+        // Calculate the center of the bounding box
+        const visualCenterX = (minLeft + maxRight) / 2;
+        const visualCenterY = (minTop + maxBottom) / 2;
+
+        currentInventory.layout.forEach(slot => {
+            const card = cardsByShape[slot.shape].pop();
+            if (card) {
+                // Calculate position relative to center
+                // We want the card's Top-Left to be shifted so that the BoundingBox Center aligns with (0,0)
+                const targetX = (slot.x * (UNIT + GAP)) - visualCenterX;
+                const targetY = (slot.y * (UNIT + GAP)) - visualCenterY;
+
+                card.style.left = `calc(50% + ${targetX}px)`;
+                card.style.top = `calc(50% + ${targetY}px)`;
+                // Revert to translate(0,0) to match Top-Left anchoring
+                card.style.transform = `translate(0, 0) rotate(0deg)`;
+                card.style.zIndex = 20;
+            }
+        });
+
+
+    }
+
+    function toggleState() {
+        if (isOrganized) {
+            randomizePositions();
+        } else {
+            organizePositions();
+        }
+    }
+
+    function startAutoCycle() {
+        stopAutoCycle(); // Clear existing to be safe
+        autoCycleInterval = setInterval(() => {
+            toggleState();
+        }, 4000);
+    }
+
+    function stopAutoCycle() {
+        if (autoCycleInterval) {
+            clearInterval(autoCycleInterval);
+            autoCycleInterval = null;
+        }
+    }
+
+    // Initialization function
+    function initialize() {
+        const numCards = parseInt(cardCountSelect.value);
+        updateCardElements(numCards);
+        stopAutoCycle();
+        randomizePositions();
+        startAutoCycle();
+    }
+
+    // Event listener for dropdown change
+    cardCountSelect.addEventListener('change', () => {
+        initialize();
+    });
+
+    // Initial Setup
+    initialize();
+
+    // Re-calculate on resize (only if width changes to avoid mobile scroll trigger)
+    let lastWidth = window.innerWidth;
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (window.innerWidth !== lastWidth) {
+                lastWidth = window.innerWidth;
+                randomizePositions();
+            }
+        }, 300);
+    });
+
+    // Event Listeners
+    // Tap/Click anywhere in window to toggle (Mobile & Desktop)
+    window.addEventListener('click', () => {
+        stopAutoCycle();
+        toggleState();
+        // Restart cycle after interaction to keep it alive if they stop interacting
+        startAutoCycle();
+    });
+}
+    </script>
+</body>
+</html>
