@@ -27,6 +27,21 @@ body.dark-mode {
     height: 100vh;
     overflow: hidden;
     transition: background 0.3s ease;
+    /* Exclude settings area from canvas with buffer */
+    padding-top: 140px; /* 120px settings + 20px buffer */
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .hero-visual-container {
+        padding-top: 230px; /* 200px settings + 30px buffer */
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-bottom: 10px;
+    }
 }
 
 body.light-mode .hero-visual-container {
@@ -74,27 +89,6 @@ body.light-mode .theme-toggle {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Update dropdown styling for dark mode */
-body.dark-mode #cardCount,
-body.dark-mode #layerCount,
-body.dark-mode #fillMode,
-body.dark-mode #paletteSelect,
-body.dark-mode #seedInput,
-body.dark-mode #shuffleSeed {
-    background: rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: black;
-}
-
-body.light-mode #cardCount,
-body.light-mode #layerCount,
-body.light-mode #fillMode,
-body.light-mode #paletteSelect,
-body.light-mode #seedInput,
-body.light-mode #shuffleSeed {
-    background: rgba(255, 255, 255, 0.9);
-    color: #1a1a1a;
-}
 
 body.dark-mode label {
     color: white;
@@ -102,6 +96,143 @@ body.dark-mode label {
 
 body.light-mode label {
     color: #1a1a1a;
+}
+
+/* Settings Container - Responsive */
+.settings-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    max-width: 100%;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+body.dark-mode .settings-container {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.settings-container > div {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.settings-container label {
+    font-size: 14px;
+    white-space: nowrap;
+    margin: 0;
+}
+
+.settings-container select,
+.settings-container input {
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    min-width: 80px;
+}
+
+body.dark-mode .settings-container select,
+body.dark-mode .settings-container input {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+body.light-mode .settings-container select,
+body.light-mode .settings-container input {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1a1a1a;
+}
+
+.settings-container button {
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body.dark-mode .settings-container button {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+body.light-mode .settings-container button {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1a1a1a;
+}
+
+#seedInput {
+    width: 100px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .settings-container {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        gap: 8px;
+        padding: 8px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .settings-container > div {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        gap: 8px;
+    }
+    
+    .settings-container label {
+        font-size: 12px;
+        flex: 0 0 auto;
+        min-width: 80px;
+    }
+    
+    .settings-container select,
+    .settings-container input {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        padding: 8px;
+    }
+    
+    #seedInput {
+        flex: 1;
+        width: auto;
+    }
+    
+    .settings-container button {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+    }
+    
+    .theme-toggle {
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
 }
 
 /* Canvas Cards - Adaptive Sizing */
@@ -399,10 +530,10 @@ body.light-mode label {
     </style>
 </head>
 <body class="light-mode">
-    <div style="position: fixed; top: 20px; left: 20px; z-index: 1000; display: flex; gap: 15px; align-items: center;">
+    <div class="settings-container">
         <div>
-            <label for="cardCount" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Number of Cards:</label>
-            <select id="cardCount" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+            <label for="cardCount">Number of Cards:</label>
+            <select id="cardCount">
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -414,15 +545,15 @@ body.light-mode label {
             </select>
         </div>
         <div>
-            <label for="layerCount" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Layers:</label>
-            <select id="layerCount" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+            <label for="layerCount">Layers:</label>
+            <select id="layerCount">
                 <option value="1" selected>1</option>
                 <option value="2">2</option>
             </select>
         </div>
         <div>
-            <label for="fillMode" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Fill:</label>
-            <select id="fillMode" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+            <label for="fillMode">Fill:</label>
+            <select id="fillMode">
                 <option value="solid" selected>Solid</option>
                 <option value="striped">Striped</option>
                 <option value="micro-striped">Micro Stripes</option>
@@ -431,8 +562,8 @@ body.light-mode label {
             </select>
         </div>
         <div>
-            <label for="paletteSelect" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Palette:</label>
-            <select id="paletteSelect" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer;">
+            <label for="paletteSelect">Palette:</label>
+            <select id="paletteSelect">
                 <option value="default" selected>Default</option>
                 <option value="sunset blvd">Sunset Blvd</option>
                 <option value="berry">Berry</option>
@@ -440,9 +571,9 @@ body.light-mode label {
             </select>
         </div>
         <div>
-            <label for="seedInput" style="margin-right: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Seed:</label>
-            <input type="text" id="seedInput" placeholder="Random" style="padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); width: 120px;">
-            <button id="shuffleSeed" style="margin-left: 8px; padding: 8px 12px; font-size: 16px; border-radius: 6px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.9); cursor: pointer; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">🎲</button>
+            <label for="seedInput">Seed:</label>
+            <input type="text" id="seedInput" placeholder="Random">
+            <button id="shuffleSeed">🎲</button>
         </div>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -1040,18 +1171,25 @@ if (canvasContainer) {
         setCardShapes(currentInventories);
 
         // Define zones to ensure distribution - create zones based on number of cards
-        // Using percentages. Safe buffer is roughly 20% from edges.
+        // Calculate canvas area (excluding settings and buffer)
+        const settingsHeight = window.innerWidth <= 768 ? 200 : 120;
+        const bufferHeight = window.innerWidth <= 768 ? 30 : 20;
+        const canvasTopOffset = settingsHeight + bufferHeight;
+        const canvasHeight = window.innerHeight - canvasTopOffset - (window.innerWidth <= 768 ? 10 : 20);
+        const canvasCenterY = canvasTopOffset + (canvasHeight / 2);
+        
+        // Zones are defined as percentages of canvas area, then converted to viewport coordinates
         const baseZones = [
-            { x: 25, y: 25 }, // TL
-            { x: 75, y: 25 }, // TR
-            { x: 25, y: 75 }, // BL
-            { x: 75, y: 75 }, // BR
-            { x: 50, y: 50 },  // Center
-            { x: 15, y: 50 },  // Left
-            { x: 85, y: 50 },  // Right
-            { x: 50, y: 15 },  // Top
-            { x: 50, y: 85 },  // Bottom
-            { x: 35, y: 35 }   // Extra
+            { x: 25, y: 25 }, // TL (relative to canvas)
+            { x: 75, y: 25 }, // TR (relative to canvas)
+            { x: 25, y: 75 }, // BL (relative to canvas)
+            { x: 75, y: 75 }, // BR (relative to canvas)
+            { x: 50, y: 50 },  // Center (relative to canvas)
+            { x: 15, y: 50 },  // Left (relative to canvas)
+            { x: 85, y: 50 },  // Right (relative to canvas)
+            { x: 50, y: 20 },  // Top (relative to canvas)
+            { x: 50, y: 80 },  // Bottom (relative to canvas)
+            { x: 35, y: 40 }   // Extra (relative to canvas)
         ];
         
         // Use as many zones as we need, up to the number of cards
@@ -1078,11 +1216,21 @@ if (canvasContainer) {
 
                 const randomRotate = seededRNG.random() * 40 - 20;
 
-                // Convert percentage to viewport width/height for pixel calculation
+                // Convert percentage to pixel position within canvas area
+                // Zones are defined as percentages of canvas area (not viewport)
+                const settingsHeight = window.innerWidth <= 768 ? 200 : 120;
+                const bufferHeight = window.innerWidth <= 768 ? 30 : 20;
+                const canvasTopOffset = settingsHeight + bufferHeight;
+                const containerPaddingX = window.innerWidth <= 768 ? 10 : 20;
+                const containerPaddingY = window.innerWidth <= 768 ? 10 : 20;
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
-                let pixelX = (finalX / 100) * vw;
-                let pixelY = (finalY / 100) * vh;
+                // Canvas area dimensions
+                const canvasWidth = vw - (containerPaddingX * 2);
+                const canvasHeight = vh - canvasTopOffset - containerPaddingY;
+                // Convert percentage to pixel position within canvas area
+                let pixelX = (finalX / 100) * canvasWidth + containerPaddingX;
+                let pixelY = canvasTopOffset + (finalY / 100) * canvasHeight;
                 
                 if (isStriped) {
                     // Get stripe type for this card to determine grid alignment
@@ -1120,7 +1268,8 @@ if (canvasContainer) {
                     pixelY = Math.round(pixelY / 10) * 10;
                 }
                 
-                // Convert back to percentage
+                // Convert back to percentage of container (not viewport)
+                // This ensures cards are positioned relative to the container's content area
                 finalX = (pixelX / vw) * 100;
                 finalY = (pixelY / vh) * 100;
 
@@ -1189,10 +1338,19 @@ if (canvasContainer) {
             if (layoutHeight > maxLayoutHeight) maxLayoutHeight = layoutHeight;
         });
         
-        // Calculate available space with buffer from window edges
+        // Calculate available space excluding settings area and buffer
+        // Settings container takes up space at the top, plus buffer
+        const settingsHeight = window.innerWidth <= 768 ? 200 : 120;
+        const bufferHeight = window.innerWidth <= 768 ? 30 : 20;
+        const canvasTopOffset = settingsHeight + bufferHeight;
         const edgeBuffer = 40;
         const availableWidth = window.innerWidth - (edgeBuffer * 2);
-        const availableHeight = window.innerHeight - (edgeBuffer * 2);
+        const availableHeight = window.innerHeight - canvasTopOffset - (edgeBuffer * 2);
+        
+        // Calculate the center of the canvas area (excluding settings)
+        // This is where cards will be centered
+        const canvasCenterX = window.innerWidth / 2;
+        const canvasCenterY = canvasTopOffset + (availableHeight / 2);
         
         // Calculate scale factor to fit layout within available space
         // Only scale down if needed, never scale up
@@ -1311,8 +1469,10 @@ if (canvasContainer) {
                     targetX *= scale;
                     targetY *= scale;
 
-                    card.style.left = `calc(50% + ${targetX}px)`;
-                    card.style.top = `calc(50% + ${targetY}px)`;
+                    // Position relative to canvas center (not viewport center)
+                    // Canvas center is already calculated above
+                    card.style.left = `${canvasCenterX + targetX}px`;
+                    card.style.top = `${canvasCenterY + targetY}px`;
                     
                     // Apply scale to card sizes
                     const dims = shapeDims[slot.shape];
